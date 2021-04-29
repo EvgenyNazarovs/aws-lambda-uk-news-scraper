@@ -4,14 +4,25 @@ Description: >-
 Transform:
 - AWS::Serverless-2016-10-31
 Resources:
+
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/hello-from-lambda.helloFromLambdaHandler
+      Handler: src/handlers/guardianScraper
       Runtime: nodejs14.x
-      MemorySize: 128
-      Timeout: 100
-      Description: A Lambda function that returns a static string.
+      MemorySize: 512
+      Timeout: 300
+      Description: Lambda that scrapes latest headlines from Guardian
+      Layers:
+        - !Ref ScraperLayer
       Policies:
-        # Give Lambda basic execution Permission to the helloFromLambda
         - AWSLambdaBasicExecutionRole
+
+  ScraperLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: scraper-dependencies
+      ContentUri: dependencies/
+      CompatibleRuntimes:
+        - nodejs14.x
+      RetentionPolicy: Retain
