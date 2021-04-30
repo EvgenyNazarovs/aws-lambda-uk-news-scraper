@@ -1,7 +1,9 @@
 const AWS = require('aws-sdk');
 const chromium = require('chrome-aws-lambda');
-const fs = require('fs');
-const documentClient = new AWS.DynamoDB.DocumentClient();
+const {
+  withBrowser,
+  withPage
+} = require('/opt/nodejs/scraperHelper');
 
 const calendar = {
   jan: 1,
