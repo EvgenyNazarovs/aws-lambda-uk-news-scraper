@@ -15,6 +15,7 @@ const withBrowser = async fn => {
 
 const withPage = browser => async fn => {
   const page = await browser.newPage();
+  await page.setDefaultNavigationTimeout(0);
   try {
     return await fn(page);
   } finally {

@@ -20,7 +20,7 @@ const calendar = {
 
 const { GuardianUrl, NewsScraperTable } = process.env;
 
-const limit = pLimit(20);
+const limit = pLimit(10);
 
 let totalEval = 0;
 
@@ -36,7 +36,8 @@ exports.handler = async () => {
     const articles = articlesData.map(processArticle);
 
     const result = await Promise.all(articles.map(async article => {
-      return createItem(NewsScraperTable, article);
+      console.log('article: ', article);
+      // return createItem(NewsScraperTable, article);
     }))
 
     console.log('result: ', result);
