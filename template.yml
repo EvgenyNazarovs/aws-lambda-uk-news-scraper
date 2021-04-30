@@ -53,6 +53,12 @@ Resources:
     Properties:
       AttributeDefinitions:
         -
+          AttributeName: 'primaryKey'
+          AttributeType: 'S'
+        -
+          AttributeName: 'sortKey'
+          AttributeType: 'S'
+        -
           AttributeName: 'newspaper'
           AttributeType: 'S'
         -
