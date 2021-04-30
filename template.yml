@@ -18,7 +18,8 @@ Resources:
       Timeout: 300
       Description: Lambda that scrapes latest headlines from Guardian
       Layers:
-        - !Ref ScraperLayer
+        - !Ref PuppeteerDependencyLayer
+        - !Ref ScraperHelperLayer
       Policies:
         - DynamoDBCrudPolicy:
           TableName: NewsScraperTable
@@ -27,14 +28,24 @@ Resources:
           GuardianUrl: https://www.theguardian.com/uk
 
 
-  ScraperLayer:
+  PuppeteerDependencyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: scraper-dependencies
+      LayerName: PuppeteerDependencyLayer
       ContentUri: dependencies/
       CompatibleRuntimes:
         - nodejs14.x
       RetentionPolicy: Retain
+
+  ScraperHelperLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ScraperHelperLayer
+      ContentUri: src/utilitiesLayer/
+      CompatibleRuntimes:
+        - nodejs14.x
+      RetentionPolicy: Retain
+        
 
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
