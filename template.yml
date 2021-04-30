@@ -26,6 +26,7 @@ Resources:
       Environment:
         Variables:
           GuardianUrl: https://www.theguardian.com/uk
+          NewsScraperTable: NewsScraperTable
 
 
   PuppeteerDependencyLayer:
@@ -74,10 +75,10 @@ Resources:
           AttributeType: 'S'
       KeySchema:
         -
-          AttributeName: 'PrimaryKey'
+          AttributeName: 'primaryKey'
           KeyType: 'HASH'
         -
-          AttributeName: 'SortKey'
+          AttributeName: 'sortKey'
           KeyType: 'RANGE'
       ProvisionedThroughput:
         ReadCapacityUnits: '5'

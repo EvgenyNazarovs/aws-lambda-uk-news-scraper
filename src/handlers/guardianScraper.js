@@ -1,7 +1,6 @@
-const AWS = require('aws-sdk');
-const chromium = require('chrome-aws-lambda');
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
+const { createItem } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -19,7 +18,7 @@ const calendar = {
   dec: 12,
 };
 
-const { GuardianUrl } = process.env;
+const { GuardianUrl, NewsScraperTable } = process.env;
 
 const limit = pLimit(20);
 
@@ -34,195 +33,18 @@ exports.handler = async () => {
         }))
     });
 
-    const articles = articlesData.map(([
-      author,
-      contentType,
-      keywords,
-      sectionName,
-      headline,
-      byline,
-      contentId,
-      thumbnail,
-      publication,
-      series,
-      seriesId,
-    ]) => {
-      if (contentType.toLowerCase() !== 'tag') {
-        const tags = keywords.split(',');
-        const newspaper = 'guardian';
-        const primaryKey = `${newspaper}`;
-        const {sortKey, section, title} = generateSortKeyParts(contentType, contentId);
-        const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const articles = articlesData.map(processArticle);
 
-        return {
-          contentType,
-          tags,
-          sectionName,
-          headline,
-          contentId,
-          thumbnail,
-          publication,
-          sortKey,
-          primaryKey,
-          scrapedOn,
-          newspaper,
-          section,
-          title,
-          author: author || byline,
-          ...(series && { series }),
-          ...(seriesId && { seriesId })
-        }
-      }
-    })
+    const result = await Promise.all(articles.map(async article => {
+      return createItem(NewsScraperTable, article);
+    }))
 
-    
+    console.log('result: ', result);
 
-    
-
-
-
-
-
-
-    // for (const link of articleLinks) {
-    //   await page.goto(link);
-    //   const result = await page.evaluate(() => {
-    //     const {
-    //       author,
-    //       contentType,
-    //       keywords,
-    //       sectionName,
-    //       headline,
-    //       byline,
-    //       contentId,
-    //       thumbnail,
-    //       publication,
-    //       series,
-    //       seriesId,
-    //     } = window.guardian.config.page;
-
-    //     return [
-    //       author,
-    //       contentType,
-    //       keywords,
-    //       sectionName,
-    //       headline,
-    //       byline,
-    //       contentId,
-    //       thumbnail,
-    //       publication,
-    //       series,
-    //       seriesId,
-    //     ];
-
-    //   })
-
-    //   articlesData.push(result);
-
-    // }
-
-    // await browser.close();
-
-    // const articles = articlesData.map(([
-      // author,
-      // contentType,
-      // keywords,
-      // sectionName,
-      // headline,
-      // byline,
-      // contentId,
-      // thumbnail,
-      // publication,
-      // series,
-      // seriesId,
-    // ]) => {
-    //   if (contentType.toLowerCase() !== "tag") {
-    //     const tags = keywords.split(",");
-
-    //     const newspaper = "guardian";
-    //     const pk = `${contentType.toLowerCase()}#${newspaper}`;
-
-    //     let sk = "";
-
-    //     if (contentType.toLowerCase() === "article") {
-    //       const [sec, y, m, d, title] = contentId.split("/");
-    //       sk = `${sec}#${y}-${calendar[m]}-${d}#${title}`;
-    //     } else {
-    //       const [sec, type, y, m, d, title] = contentId.split("/");
-    //       sk = `${sec}#${y}-${calendar[m]}-${d}#${title}`;
-    //     }
-
-    //     const now = Date.now();
-    //     const today = new Date(now);
-    //     const scrapedOn = today.toISOString();
-
-    //     console.log("pk: ", pk);
-    //     console.log("sk: ", sk);
-
-    //     return {
-    //       contentType,
-    //       tags,
-    //       sectionName,
-    //       headline,
-    //       contentId,
-    //       thumbnail,
-    //       publication,
-    //       author: author || byline,
-    //       pk,
-    //       sk,
-    //       scrapedOn,
-    //       ...(series && { series }),
-    //       ...(seriesId && { seriesId }),
-    //     }
-    //   }
-    // }).filter(article => article?.sk && article?.pk);
-
-    // console.log('articles: ', articles);
-
-
-    // const promises = articleLinks.map(async link => {
-    //   const newPage = await browser.newPage();
-    //   await newPage.goto(link);
-    //   return newPage.evaluate(() => {
-    //     const {
-    //       author,
-    //       contentType,
-    //       keywords,
-    //       sectionName,
-    //       headline,
-    //       byline,
-    //       contentId,
-    //       thumbnail,
-    //       publication,
-    //       series,
-    //       seriesId,
-    //     } = window.guardian.config.page;
-
-        
-
-    //     // const description = getMetaTag("description");
-    //     // const publishedTime = getMetaTag("published_time");
-    //     // const modifiedTime = getMetaTag("modified_time");
-
-    //     return [
-    //       author,
-    //       contentType,
-    //       keywords,
-    //       sectionName,
-    //       headline,
-    //       byline,
-    //       contentId,
-    //       thumbnail,
-    //       publication,
-    //       series,
-    //       seriesId,
-    //     ];
-    //   })
-    // })
-
-    // const scraperData = await Promise.all(promises);
-
-    
+    return {
+      statusCode: 200,
+      body: JSON.stringify('Articles Processed Successfully')
+    }
     
   } catch (err) {
     console.error(err);
@@ -247,6 +69,47 @@ const getLinks = async browser => {
   } catch (err) {
     console.error(err);
     throw Error(err);
+  }
+}
+
+const processArticle = ([
+  author,
+  contentType,
+  keywords,
+  sectionName,
+  headline,
+  byline,
+  contentId,
+  thumbnail,
+  publication,
+  series,
+  seriesId,
+]) => {
+  if (contentType.toLowerCase() !== 'tag') {
+    const tags = keywords.split(',');
+    const newspaper = 'guardian';
+    const primaryKey = `${newspaper}`;
+    const {sortKey, section, title} = generateSortKeyParts(contentType, contentId);
+    const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
+    return {
+      contentType,
+      tags,
+      sectionName,
+      headline,
+      contentId,
+      thumbnail,
+      publication,
+      sortKey,
+      primaryKey,
+      scrapedOn,
+      newspaper,
+      section,
+      title,
+      author: author || byline,
+      ...(series && { series }),
+      ...(seriesId && { seriesId })
+    }
   }
 }
 
