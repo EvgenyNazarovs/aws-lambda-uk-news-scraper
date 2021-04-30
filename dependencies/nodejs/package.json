@@ -12,6 +12,7 @@
   "dependencies": {
     "aws-sdk": "^2.896.0",
     "chrome-aws-lambda": "^8.0.2",
+    "p-limit": "^2.3.0",
     "puppeteer-core": "^9.0.0",
     "uuid": "^8.3.2"
   }
