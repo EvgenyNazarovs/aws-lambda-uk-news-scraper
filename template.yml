@@ -22,6 +22,9 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
           TableName: NewsScraperTable
+      Environment:
+        Variables:
+          GuardianUrl: https://www.theguardian.com/uk
 
 
   ScraperLayer:
