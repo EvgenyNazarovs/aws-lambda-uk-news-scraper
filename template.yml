@@ -22,7 +22,7 @@ Resources:
         - !Ref ScraperHelperLayer
       Policies:
         - DynamoDBCrudPolicy:
-          TableName: NewsScraperTable
+            TableName: !Ref NewsScraperTable
       Environment:
         Variables:
           GuardianUrl: https://www.theguardian.com/uk
@@ -84,6 +84,3 @@ Resources:
         ReadCapacityUnits: '5'
         WriteCapacityUnits: '5'
       TableName: 'NewsScraperTable'
-
-
-
