@@ -41,25 +41,25 @@ Resources:
     Properties:
       AttributeDefinitions:
         -
-          AttributeName: 'Newspaper'
+          AttributeName: 'newspaper'
           AttributeType: 'S'
         -
-          AttributeName: 'Date'
+          AttributeName: 'date'
           AttributeType: 'S'
         -
-          AttributeName: 'Section'
+          AttributeName: 'section'
           AttributeType: 'S'
         - 
-          AttributeName: 'Headline'
+          AttributeName: 'headline'
           AttributeType: 'S'
         -
-          AttributeName: 'Tag'
+          AttributeName: 'tag'
           AttributeType: 'S'
         -
-          AttributeName: 'Author'
+          AttributeName: 'author'
           AttributeType: 'S'
         -
-          AttributeName: 'ContentType'
+          AttributeName: 'contentType'
           AttributeType: 'S'
       KeySchema:
         -
