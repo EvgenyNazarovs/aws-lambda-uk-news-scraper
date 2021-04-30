@@ -1,22 +1,28 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: >-
-  aws-lambda-uk-news-scraper
-Transform:
-- AWS::Serverless-2016-10-31
+Description: aws-lambda-uk-news-scraper
+Transform: Serverless-2016-10-31
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    Environment:
+      Variables:
+        AwsRegion: eu-west-1
+
 Resources:
 
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/handlers/guardianScraper
-      Runtime: nodejs14.x
       MemorySize: 512
       Timeout: 300
       Description: Lambda that scrapes latest headlines from Guardian
       Layers:
         - !Ref ScraperLayer
       Policies:
-        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+          TableName: NewsScraperTable
+
 
   ScraperLayer:
     Type: AWS::Serverless::LayerVersion
@@ -63,8 +69,6 @@ Resources:
         ReadCapacityUnits: '5'
         WriteCapacityUnits: '5'
       TableName: 'NewsScraperTable'
-
-
 
 
 
