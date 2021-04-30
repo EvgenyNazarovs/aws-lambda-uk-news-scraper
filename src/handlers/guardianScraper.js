@@ -5,7 +5,7 @@ const documentClient = new AWS.DynamoDB.DocumentClient();
 
 const { GuardianUrl } = process.env;
 
-exports.guardianScraper = async () => {
+exports.handler = async () => {
   try {
     const browser = await chromium.puppeteer.launch({
       args: chromium.args,

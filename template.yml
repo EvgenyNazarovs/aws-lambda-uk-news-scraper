@@ -13,7 +13,7 @@ Resources:
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/guardianScraper
+      Handler: src/handlers/guardianScraper.handler
       MemorySize: 512
       Timeout: 300
       Description: Lambda that scrapes latest headlines from Guardian
