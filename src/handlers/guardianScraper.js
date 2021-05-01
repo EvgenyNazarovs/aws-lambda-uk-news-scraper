@@ -202,7 +202,6 @@ const filterExisting = (urls, existingArticles) => {
 
 const scrapeArticles = async () => {
   try {
-    console.log('were here');
     return await withBrowser(async browser => {
       const [
         articleUrls,
@@ -219,8 +218,7 @@ const scrapeArticles = async () => {
 
       console.log('uniq urls: ', uniqUrls);
 
-      const testUrls = uniqUrls.filter(url => url.includes('world'));
-      return Promise.all(testUrls.map(async url => {
+      return Promise.all(uniqUrls.map(async url => {
         return getArticleData(browser, url)
         }))
     });
