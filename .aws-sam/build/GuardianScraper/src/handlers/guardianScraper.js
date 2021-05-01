@@ -20,7 +20,7 @@ const calendar = {
 
 const { GuardianUrl, NewsScraperTable } = process.env;
 
-const limit = pLimit(20);
+const limit = pLimit(10);
 
 let totalEval = 0;
 
