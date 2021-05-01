@@ -58,27 +58,6 @@ Resources:
         -
           AttributeName: 'sortKey'
           AttributeType: 'S'
-        -
-          AttributeName: 'newspaper'
-          AttributeType: 'S'
-        -
-          AttributeName: 'date'
-          AttributeType: 'S'
-        -
-          AttributeName: 'section'
-          AttributeType: 'S'
-        - 
-          AttributeName: 'headline'
-          AttributeType: 'S'
-        -
-          AttributeName: 'tag'
-          AttributeType: 'S'
-        -
-          AttributeName: 'author'
-          AttributeType: 'S'
-        -
-          AttributeName: 'contentType'
-          AttributeType: 'S'
       KeySchema:
         -
           AttributeName: 'primaryKey'

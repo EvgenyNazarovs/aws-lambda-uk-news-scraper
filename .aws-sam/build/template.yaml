@@ -47,19 +47,9 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-      - AttributeName: newspaper
+      - AttributeName: primaryKey
         AttributeType: S
-      - AttributeName: date
-        AttributeType: S
-      - AttributeName: section
-        AttributeType: S
-      - AttributeName: headline
-        AttributeType: S
-      - AttributeName: tag
-        AttributeType: S
-      - AttributeName: author
-        AttributeType: S
-      - AttributeName: contentType
+      - AttributeName: sortKey
         AttributeType: S
       KeySchema:
       - AttributeName: primaryKey
