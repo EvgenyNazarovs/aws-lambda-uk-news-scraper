@@ -5,7 +5,7 @@ exports.handler = async () => {
   try {
     const items = await getAllGuardianArticles();
     return {
-      items,
+      body: JSON.stringify(items),
       statusCode: 200,
     }
   } catch (err) {
