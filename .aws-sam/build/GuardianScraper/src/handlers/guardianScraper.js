@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { createItem } = require('/opt/dynamodbHelper')
+const { queryItems, updateItem, createMany, updateMany } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -18,7 +18,12 @@ const calendar = {
   dec: 12,
 };
 
-const { GuardianUrl, NewsScraperTable } = process.env;
+const {
+  GuardianUrlUk,
+  GuardianUrl,
+  NewsScraperTable,
+  PrimaryKey
+} = process.env;
 
 const limit = pLimit(10);
 
@@ -26,22 +31,40 @@ let totalEval = 0;
 
 exports.handler = async () => {
   try {
-    const articlesData = await withBrowser(async browser => {
-      const articleLinks = await getLinks(browser);
-      console.log('number of articles: ', articleLinks.length);
-      const uniqLinks = filterUniqueLinks(articleLinks);
-      console.log('number of unique: ', uniqLinks.length);
-      return Promise.all(uniqLinks.map(async link => {
-        return getArticleData(browser, link)
-        }))
-    });
+    const [
+      articlesData,
+      existingTags,
+      existingAuthors
+    ] = await Promise.all([
+      scrapeArticles(),
+      getExistingTags(),
+      getExistingAuthors()
+    ])
 
     const articles = articlesData.map(processArticle);
 
-    const result = await Promise.all(articles.map(async article => {
-      console.log('article: ', article);
-      return createItem(NewsScraperTable, article);
-    }))
+    console.log('articles: ', articles);
+
+
+    const {
+      existingUpdatedTags,
+      newUpdatedTags
+    } = sortTags(articles, existingTags);
+
+    const {
+      existingUpdatedAuthors,
+      newUpdatedAuthors
+    } = sortAuthors(articles, existingAuthors);
+
+    
+
+    const result = await Promise.all([
+      ...createMany(NewsScraperTable, articles),
+      ...updateMany(NewsScraperTable, existingUpdatedTags),
+      ...updateMany(NewsScraperTable, existingUpdatedAuthors),
+      ...createMany(NewsScraperTable, newUpdatedTags),
+      ...createMany(NewsScraperTable, newUpdatedAuthors)
+    ])
 
     console.log('result: ', result);
 
@@ -56,7 +79,199 @@ exports.handler = async () => {
   }
 }
 
-const filterUniqueLinks = links => [...new Set(links)];
+const sortAuthors = (articles, existingAuthors) => {
+  const existingAuthorsObj = sortBySortKey(existingAuthors);
+  const sortedAuthorsObj = getAuthorsFromArticles(articles, existingAuthorsObj);
+  const existingUpdatedAuthors = filterExistingObjects(sortedAuthorsObj, existingAuthorsObj);
+  const newUpdatedAuthors = filterNew(sortedAuthorsObj, existingAuthorsObj);
+  return {
+    existingUpdatedAuthors,
+    newUpdatedAuthors
+  };
+}
+
+const sortTags = (articles, existingTags) => {
+  const existingTagsObj = sortBySortKey(existingTags);
+  const sortedTagsObj = getTagsFromNewArticles(articles, existingTagsObj)
+  const existingUpdatedTags = filterExistingObjects(sortedTagsObj, existingTagsObj);
+  const newUpdatedTags = filterNew(sortedTagsObj, existingTagsObj);
+  return {
+    existingUpdatedTags,
+    newUpdatedTags
+  }
+}
+
+const filterExistingObjects = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return Object.keys(existingAuthorsObj).includes(sortKey)
+  });
+}
+
+const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return !Object.keys(existingAuthorsObj).includes(sortKey)
+  });
+}
+
+
+  const sortByKey = (arr, key) => {
+    return arr.reduce((obj, item) => {
+      return { ...obj, [item[key]]: item }
+    }, {})
+  }
+
+  const sortBySortKey = arr => sortByKey(arr, 'sortKey');
+
+  const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
+    return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
+      authors.forEach(author => {
+        const authorObj = {
+          primaryKey: 'Author',
+          sortKey: author,
+          newspaper: 'Guardian',
+          articleIds: [
+            ...obj[author]?.articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+
+        obj = { ...obj, [author]: authorObj }
+      })
+
+      return obj;
+    }, existingAuthorsObj)
+  }
+
+  const getTagsFromNewArticles = (articles, existingTagsObj) => {
+    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
+      tags.forEach(tag => {
+        const tagObj = {
+          primaryKey: 'Tag',
+          sortKey: tag,
+          articleIds: [
+            ...obj[tag]?.articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+  
+      obj = { ...obj, [tag]: tagObj }
+    })
+
+    return obj;
+
+    }, existingTagsObj)
+  }
+
+
+// const updateTag = async (tag, article) => {
+//   try {
+//     const ddbItem = {
+//       primaryKey: 'Tag',
+//       sortKey: tag,
+//       articles: article.map()
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     throw Error(err);
+//   }
+// }
+
+const getUniqueUrls = (urls, existingArticles) => {
+  const filteredUniqueUrls = filterUnique(urls);
+  return filterExisting(filteredUniqueUrls, existingArticles);
+}
+
+// const getUniqueTags = (articles, existingTags) => {
+//   const newTags = articles.flatMap(({ tags }) => tags);
+//   return [...new Set([
+//     ...existingTags,
+//     ...newTags
+//   ])]
+// }
+
+const filterExisting = (urls, existingArticles) => {
+  const existingUrls = existingArticles.map(({ contentId }) => {
+    return `${GuardianUrl}${contentId}`;
+  })
+  console.log('existing urls: ', existingUrls);
+  return [...new Set([
+      ...urls,
+      ...existingUrls
+      ])]
+}
+
+const scrapeArticles = async () => {
+  try {
+    console.log('were here');
+    return await withBrowser(async browser => {
+      const [
+        articleUrls,
+        existingArticles
+      ] = await Promise.all([
+        getUrls(browser),
+        getExistingArticles(PrimaryKey, dayjs().format('YYYY-M-DD'))
+      ])
+
+      console.log('article urls: ', articleUrls);
+      console.log('existing articles: ', existingArticles);
+
+      const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
+
+      console.log('uniq urls: ', uniqUrls);
+
+      const testUrls = uniqUrls.filter(url => url.includes('world'));
+      return Promise.all(testUrls.map(async url => {
+        return getArticleData(browser, url)
+        }))
+    });
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getExistingTags = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Tag'
+      }
+    }
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getExistingAuthors = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Author'
+      }
+    }
+
+    return queryItems(params);
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const filterUnique = links => [...new Set(links)];
 
 const getHeadlines = () => {
   return [
@@ -66,10 +281,35 @@ const getHeadlines = () => {
          ].map(item => item.getAttribute('href'))
 };
 
-const getLinks = async browser => {
+const getExistingArticles = async (newspaper, date) => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey and begins_with(#sortKey, :sortKey)',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey',
+        '#sortKey': 'sortKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': newspaper,
+        ':sortKey': date
+      }
+    }
+
+    console.log('getting existing articles... ', params);
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getUrls = async browser => {
   try {
     return withPage(browser)(async page => {
-      await page.goto(GuardianUrl, { waitUntil: 'networkidle2' });
+      await page.goto(GuardianUrlUk, { waitUntil: 'networkidle2' });
       return page.evaluate(getHeadlines)
     });
   } catch (err) {
@@ -93,10 +333,11 @@ const processArticle = ([
 ]) => {
   if (contentType.toLowerCase() !== 'tag') {
     const tags = keywords.split(',');
-    const newspaper = 'guardian';
+    const newspaper = 'Guardian';
     const primaryKey = `${newspaper}`;
-    const {sortKey, section, title} = generateSortKeyParts(contentType, contentId);
+    const {date, title, sortKey} = generateSortKeyParts(contentType, contentId);
     const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const authors = author ? author.split(',') : byline.split(',');
 
     return {
       contentType,
@@ -110,9 +351,9 @@ const processArticle = ([
       primaryKey,
       scrapedOn,
       newspaper,
-      section,
+      date,
       title,
-      author: author || byline,
+      authors,
       ...(series && { series }),
       ...(seriesId && { seriesId })
     }
@@ -164,18 +405,20 @@ const getArticleData = async (browser, link) => {
 
 const generateSortKeyParts = (contentType, contentId) => {
   if (contentType.toLowerCase() === 'article') {
-    const [section, y, m, d, title] = contentId.split('/');
+    const [, y, m, d, title] = contentId.split('/');
+    const date = `${y}-${calendar[m]}-${d}`;
     return {
-      section,
+      date,
       title,
-      sortKey: `${section}#${y}-${calendar[m]}-${d}#${title}`
+      sortKey: `${date}#${contentType}#${title}`
     };
   } else {
-    const [section,, y, m, d, title] = contentId.split('/');
+    const [,, y, m, d, title] = contentId.split('/');
+    const date = `${y}-${calendar[m]}-${d}`;
     return {
-      section,
+      date,
       title,
-      sortKey: `${section}#${y}-${calendar[m]}-${d}#${title}`
+      sortKey: `${date}#${contentType}#${title}`
     };
   }
 }

@@ -25,7 +25,9 @@ Resources:
             Ref: NewsScraperTable
       Environment:
         Variables:
-          GuardianUrl: https://www.theguardian.com/uk
+          GuardianUrlUk: https://www.theguardian.com/uk
+          GuardianUrl: https://www.theguardian.com/
+          PrimaryKey: Guardian
           NewsScraperTable: NewsScraperTable
       CodeUri: GuardianScraper
   PuppeteerDependencyLayer:

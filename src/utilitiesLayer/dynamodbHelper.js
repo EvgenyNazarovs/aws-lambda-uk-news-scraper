@@ -19,6 +19,7 @@ const createItem = async (tableName, item) => {
 
   } catch (err) {
     console.error(err);
+    console.error('error with item: ', item);
     throw Error(err);
   }
 }
@@ -43,9 +44,9 @@ const getItem = async (tableName, primaryKey, sortKey) => {
   }
 }
 
-const queryItems = async (tableName, params) => {
+const queryItems = async (params) => {
   try {
-    const { Items } = await documentClient.query(params).promise();
+    const { Items }= await documentClient.query(params).promise();
 
     return Items;
 
@@ -76,20 +77,28 @@ const deleteItem = async (tableName, primaryKey, sortKey) => {
 const updateItem = async (tableName, item) => {
   try {
     const { primaryKey, sortKey, ...rest } = item;
+    const attributeNames = getExpressionAttributeNames(rest);
     const params = {
       TableName: tableName,
       Key: { primaryKey, sortKey },
       UpdateExpression: getUpdateExpression(rest),
-      ExpressionAttributeNames: getExpressionAttributeNames(rest),
       ExpressionAttributeValues: getExpressionAttributeValues(rest),
-      ReturnedValues: 'ALL_NEW'
+      ReturnedValues: 'ALL_NEW',
+      ...(Object.entries(attributeNames).length > 0 && {
+        ExpressionAttributeNames: attributeNames
+      })
     }
 
-    const { Attributes } = await documentClient.update(params);
+    console.log('updating item... ', params)
 
-    return Attributes;
+    const result = await documentClient.update(params).promise();
+
+    console.log('result: ', result);
+
+    return result;
   } catch (err) {
     console.error(err);
+    console.error('error with item: ', item);
     throw Error(err);
   }
 }

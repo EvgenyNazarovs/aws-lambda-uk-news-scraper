@@ -1,7 +1,6 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { updateMany } = require('../utilitiesLayer/dynamodbHelper');
-const { queryItems, updateItem, createMany, upfateMany } = require('/opt/dynamodbHelper')
+const { queryItems, updateItem, createMany, updateMany } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -43,13 +42,28 @@ exports.handler = async () => {
     ])
 
     const articles = articlesData.map(processArticle);
-    const tags = sortTags(articles, existingTags);
-    const authors = sortAuthors(articles, existingAuthors);
+
+    console.log('articles: ', articles);
+
+
+    const {
+      existingUpdatedTags,
+      newUpdatedTags
+    } = sortTags(articles, existingTags);
+
+    const {
+      existingUpdatedAuthors,
+      newUpdatedAuthors
+    } = sortAuthors(articles, existingAuthors);
+
+    
 
     const result = await Promise.all([
       ...createMany(NewsScraperTable, articles),
-      ...updateMany(NewsScraperTable, tags),
-      ...updateMany(NewsScraperTable, authors)
+      ...updateMany(NewsScraperTable, existingUpdatedTags),
+      ...updateMany(NewsScraperTable, existingUpdatedAuthors),
+      ...createMany(NewsScraperTable, newUpdatedTags),
+      ...createMany(NewsScraperTable, newUpdatedAuthors)
     ])
 
     console.log('result: ', result);
@@ -68,13 +82,35 @@ exports.handler = async () => {
 const sortAuthors = (articles, existingAuthors) => {
   const existingAuthorsObj = sortBySortKey(existingAuthors);
   const sortedAuthorsObj = getAuthorsFromArticles(articles, existingAuthorsObj);
-  return Object.values(sortedAuthorsObj);
+  const existingUpdatedAuthors = filterExistingObjects(sortedAuthorsObj, existingAuthorsObj);
+  const newUpdatedAuthors = filterNew(sortedAuthorsObj, existingAuthorsObj);
+  return {
+    existingUpdatedAuthors,
+    newUpdatedAuthors
+  };
 }
 
 const sortTags = (articles, existingTags) => {
   const existingTagsObj = sortBySortKey(existingTags);
   const sortedTagsObj = getTagsFromNewArticles(articles, existingTagsObj)
-  return Object.values(sortedTagsObj);
+  const existingUpdatedTags = filterExistingObjects(sortedTagsObj, existingTagsObj);
+  const newUpdatedTags = filterNew(sortedTagsObj, existingTagsObj);
+  return {
+    existingUpdatedTags,
+    newUpdatedTags
+  }
+}
+
+const filterExistingObjects = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return Object.keys(existingAuthorsObj).includes(sortKey)
+  });
+}
+
+const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return !Object.keys(existingAuthorsObj).includes(sortKey)
+  });
 }
 
 
@@ -94,7 +130,7 @@ const sortTags = (articles, existingTags) => {
           sortKey: author,
           newspaper: 'Guardian',
           articleIds: [
-            ...obj[tag].articleIds || [],
+            ...obj[author]?.articleIds || [],
             { primaryKey, sortKey }
           ]
         };
@@ -111,9 +147,9 @@ const sortTags = (articles, existingTags) => {
       tags.forEach(tag => {
         const tagObj = {
           primaryKey: 'Tag',
-          secondaryKey: tag,
+          sortKey: tag,
           articleIds: [
-            ...obj[tag].articleIds || [],
+            ...obj[tag]?.articleIds || [],
             { primaryKey, sortKey }
           ]
         };
@@ -157,6 +193,7 @@ const filterExisting = (urls, existingArticles) => {
   const existingUrls = existingArticles.map(({ contentId }) => {
     return `${GuardianUrl}${contentId}`;
   })
+  console.log('existing urls: ', existingUrls);
   return [...new Set([
       ...urls,
       ...existingUrls
@@ -165,17 +202,25 @@ const filterExisting = (urls, existingArticles) => {
 
 const scrapeArticles = async () => {
   try {
+    console.log('were here');
     return await withBrowser(async browser => {
       const [
         articleUrls,
         existingArticles
       ] = await Promise.all([
         getUrls(browser),
-        getExistingArticles(PrimaryKey, dayjs.format('YYYY-MM-DD'))
+        getExistingArticles(PrimaryKey, dayjs().format('YYYY-M-DD'))
       ])
 
+      console.log('article urls: ', articleUrls);
+      console.log('existing articles: ', existingArticles);
+
       const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
-      return Promise.all(uniqUrls.map(async url => {
+
+      console.log('uniq urls: ', uniqUrls);
+
+      const testUrls = uniqUrls.filter(url => url.includes('world'));
+      return Promise.all(testUrls.map(async url => {
         return getArticleData(browser, url)
         }))
     });
@@ -251,6 +296,8 @@ const getExistingArticles = async (newspaper, date) => {
       }
     }
 
+    console.log('getting existing articles... ', params);
+
     return queryItems(params);
 
   } catch (err) {
@@ -290,6 +337,7 @@ const processArticle = ([
     const primaryKey = `${newspaper}`;
     const {date, title, sortKey} = generateSortKeyParts(contentType, contentId);
     const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const authors = author ? author.split(',') : byline.split(',');
 
     return {
       contentType,
@@ -305,7 +353,7 @@ const processArticle = ([
       newspaper,
       date,
       title,
-      author: author || byline,
+      authors,
       ...(series && { series }),
       ...(seriesId && { seriesId })
     }
