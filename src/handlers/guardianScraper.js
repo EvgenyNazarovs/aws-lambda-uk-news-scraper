@@ -28,9 +28,10 @@ exports.handler = async () => {
   try {
     const articlesData = await withBrowser(async browser => {
       const articleLinks = await getLinks(browser);
-      console.log('articles links: ', articleLinks);
       console.log('number of articles: ', articleLinks.length);
-      return Promise.all(articleLinks.map(async link => {
+      const uniqLinks = filterUniqueLinks(articleLinks);
+      console.log('number of unique: ', uniqLinks);
+      return Promise.all(uniqLinks.map(async link => {
         return getArticleData(browser, link)
         }))
     });
@@ -54,6 +55,8 @@ exports.handler = async () => {
     throw Error(err);
   }
 }
+
+const filterUniqueLinks = links => [...new Set(links)];
 
 const getHeadlines = () => {
   return [
