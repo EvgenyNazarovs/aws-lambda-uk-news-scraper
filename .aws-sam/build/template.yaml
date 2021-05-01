@@ -67,6 +67,12 @@ Resources:
       Environment:
         Variables:
           PrimaryKey: Guardian
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /articles/guardian
+            Method: GET
       CodeUri: GetAllGuardianArticlesFunction
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
