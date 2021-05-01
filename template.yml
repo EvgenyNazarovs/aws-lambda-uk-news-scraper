@@ -62,7 +62,6 @@ Resources:
       CompatibleRuntimes:
         - nodejs14.x
       RetentionPolicy: Retain
-        
 
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
