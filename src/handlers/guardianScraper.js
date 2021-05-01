@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { queryItems, updateItem, createMany, updateMany } = require('/opt/dynamodbHelper')
+const { queryItems, createMany, updateMany } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {

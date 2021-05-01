@@ -7,6 +7,7 @@ Globals:
     Environment:
       Variables:
         AwsRegion: eu-west-1
+        NewsScraperTable: NewsScraperTable
 Resources:
   GuardianScraper:
     Type: AWS::Serverless::Function
@@ -33,7 +34,6 @@ Resources:
           GuardianUrlUk: https://www.theguardian.com/uk
           GuardianUrl: https://www.theguardian.com/
           PrimaryKey: Guardian
-          NewsScraperTable: NewsScraperTable
       CodeUri: GuardianScraper
   PuppeteerDependencyLayer:
     Type: AWS::Serverless::LayerVersion
@@ -51,6 +51,23 @@ Resources:
       CompatibleRuntimes:
       - nodejs14.x
       RetentionPolicy: Retain
+  GetAllGuardianArticlesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getAllGuardianArticles.handler
+      MemorySize: 128
+      Timeout: 100
+      Description: Lambda that gets all Guardian articles
+      Layers:
+      - Ref: ScraperHelperLayer
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: NewsScraperTable
+      Environment:
+        Variables:
+          PrimaryKey: Guardian
+      CodeUri: GetAllGuardianArticlesFunction
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
     Properties:

@@ -6,6 +6,6 @@ codeuri = "/Users/eugenenazarovs/Projects/aws-lambda-uk-news-scraper"
 runtime = "nodejs14.x"
 source_md5 = ""
 packagetype = "Zip"
-functions = ["GuardianScraper"]
+functions = ["GuardianScraper", "GetAllGuardianArticlesFunction"]
 
 [layer_build_definitions]
