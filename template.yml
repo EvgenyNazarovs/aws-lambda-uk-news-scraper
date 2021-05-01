@@ -28,7 +28,7 @@ Resources:
         GuardianScraperScheduledEvent:
           Type: Schedule
           Properties:
-            Schedule: rate(2 hour)
+            Schedule: rate(2 hours)
       Environment:
         Variables:
           GuardianUrlUk: https://www.theguardian.com/uk

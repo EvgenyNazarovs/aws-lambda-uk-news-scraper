@@ -23,6 +23,11 @@ Resources:
       - DynamoDBCrudPolicy:
           TableName:
             Ref: NewsScraperTable
+      Events:
+        GuardianScraperScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 hours)
       Environment:
         Variables:
           GuardianUrlUk: https://www.theguardian.com/uk

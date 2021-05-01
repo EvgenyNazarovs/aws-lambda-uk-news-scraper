@@ -24,13 +24,17 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NewsScraperTable
+      Events:
+        GuardianScraperScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 hours)
       Environment:
         Variables:
           GuardianUrlUk: https://www.theguardian.com/uk
           GuardianUrl: https://www.theguardian.com/
           PrimaryKey: Guardian
           NewsScraperTable: NewsScraperTable
-
 
   PuppeteerDependencyLayer:
     Type: AWS::Serverless::LayerVersion
@@ -49,7 +53,6 @@ Resources:
       CompatibleRuntimes:
         - nodejs14.x
       RetentionPolicy: Retain
-        
 
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
