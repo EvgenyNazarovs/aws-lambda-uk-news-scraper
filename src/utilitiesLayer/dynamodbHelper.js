@@ -10,7 +10,7 @@ const createItem = async (tableName, item) => {
     const params = {
       TableName: tableName,
       Item: item,
-      ReturnValues: 'ALL_NEW'
+      ReturnValues: 'ALL_OLD'
     };
 
     const { Attributes } = await documentClient.put(params).promise();
