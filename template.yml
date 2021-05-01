@@ -10,6 +10,14 @@ Globals:
 
 Resources:
 
+  NewsHeadlinesApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: Prod
+        CorsConfiguration:
+          AllowMethods:
+            - GET
+
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
@@ -24,6 +32,11 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NewsScraperTable
+      Events:
+        GuardianScraperScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 hour)
       Environment:
         Variables:
           GuardianUrlUk: https://www.theguardian.com/uk
