@@ -10,14 +10,6 @@ Globals:
 
 Resources:
 
-  NewsHeadlinesApi:
-      Type: AWS::Serverless::Api
-      Properties:
-        StageName: Prod
-        CorsConfiguration:
-          AllowMethods:
-            - GET
-
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
@@ -43,7 +35,6 @@ Resources:
           GuardianUrl: https://www.theguardian.com/
           PrimaryKey: Guardian
           NewsScraperTable: NewsScraperTable
-
 
   PuppeteerDependencyLayer:
     Type: AWS::Serverless::LayerVersion
