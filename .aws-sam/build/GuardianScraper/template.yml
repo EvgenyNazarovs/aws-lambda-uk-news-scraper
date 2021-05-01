@@ -16,6 +16,7 @@ Resources:
       Handler: src/handlers/guardianScraper.handler
       MemorySize: 512
       Timeout: 900
+      ReservedConcurrentExecutions: 10
       Description: Lambda that scrapes latest headlines from Guardian
       Layers:
         - !Ref PuppeteerDependencyLayer
