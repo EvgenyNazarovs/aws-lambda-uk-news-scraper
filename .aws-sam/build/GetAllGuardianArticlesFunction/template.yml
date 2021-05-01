@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: aws-lambda-uk-news-scraper
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    Environment:
+      Variables:
+        AwsRegion: eu-west-1
+        NewsScraperTable: NewsScraperTable
+
+Resources:
+
+  GuardianScraper:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/guardianScraper.handler
+      MemorySize: 512
+      Timeout: 900
+      ReservedConcurrentExecutions: 10
+      Description: Lambda that scrapes latest headlines from Guardian
+      Layers:
+        - !Ref PuppeteerDependencyLayer
+        - !Ref ScraperHelperLayer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NewsScraperTable
+      Events:
+        GuardianScraperScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(2 hours)
+      Environment:
+        Variables:
+          GuardianUrlUk: https://www.theguardian.com/uk
+          GuardianUrl: https://www.theguardian.com/
+          PrimaryKey: Guardian
+
+  PuppeteerDependencyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: PuppeteerDependencyLayer
+      ContentUri: dependencies/
+      CompatibleRuntimes:
+        - nodejs14.x
+      RetentionPolicy: Retain
+
+  ScraperHelperLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ScraperHelperLayer
+      ContentUri: src/utilitiesLayer/
+      CompatibleRuntimes:
+        - nodejs14.x
+      RetentionPolicy: Retain
+
+  GetAllGuardianArticlesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getAllGuardianArticles.handler
+      MemorySize: 128
+      Timeout: 100
+      Description: Lambda that gets all Guardian articles
+      Layers:
+        - !Ref ScraperHelperLayer
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref NewsScraperTable
+      Environment:
+        Variables:
+          PrimaryKey: Guardian
+
+  NewsScraperTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: 'primaryKey'
+          AttributeType: 'S'
+        -
+          AttributeName: 'sortKey'
+          AttributeType: 'S'
+      KeySchema:
+        -
+          AttributeName: 'primaryKey'
+          KeyType: 'HASH'
+        -
+          AttributeName: 'sortKey'
+          KeyType: 'RANGE'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '5'
+        WriteCapacityUnits: '5'
+      TableName: 'NewsScraperTable'
