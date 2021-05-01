@@ -28,6 +28,8 @@ exports.handler = async () => {
   try {
     const articlesData = await withBrowser(async browser => {
       const articleLinks = await getLinks(browser);
+      console.log('articles links: ', articleLinks);
+      console.log('number of articles: ', articleLinks.length);
       return Promise.all(articleLinks.map(async link => {
         return getArticleData(browser, link)
         }))
@@ -37,7 +39,7 @@ exports.handler = async () => {
 
     const result = await Promise.all(articles.map(async article => {
       console.log('article: ', article);
-      // return createItem(NewsScraperTable, article);
+      return createItem(NewsScraperTable, article);
     }))
 
     console.log('result: ', result);
