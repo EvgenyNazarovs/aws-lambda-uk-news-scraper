@@ -43,6 +43,18 @@ const getItem = async (tableName, primaryKey, sortKey) => {
   }
 }
 
+const queryItems = async (tableName, params) => {
+  try {
+    const { Items } = await documentClient.query(params).promise();
+
+    return Items;
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
 const deleteItem = async (tableName, primaryKey, sortKey) => {
   try {
     const params = {
@@ -64,7 +76,8 @@ const deleteItem = async (tableName, primaryKey, sortKey) => {
 module.exports = {
   createItem,
   getItem,
-  deleteItem
+  deleteItem,
+  queryItems
 }
 
 // const updateItem = async (tableName, ) => {

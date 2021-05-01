@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { createItem } = require('/opt/dynamodbHelper')
+const { createItem, queryItems } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -28,9 +28,7 @@ exports.handler = async () => {
   try {
     const articlesData = await withBrowser(async browser => {
       const articleLinks = await getLinks(browser);
-      console.log('number of articles: ', articleLinks.length);
       const uniqLinks = filterUniqueLinks(articleLinks);
-      console.log('number of unique: ', uniqLinks.length);
       return Promise.all(uniqLinks.map(async link => {
         return getArticleData(browser, link)
         }))
@@ -39,7 +37,6 @@ exports.handler = async () => {
     const articles = articlesData.map(processArticle);
 
     const result = await Promise.all(articles.map(async article => {
-      console.log('article: ', article);
       return createItem(NewsScraperTable, article);
     }))
 
@@ -65,6 +62,29 @@ const getHeadlines = () => {
       ),
          ].map(item => item.getAttribute('href'))
 };
+
+const getExistingArticles = async (newspaper, date) => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey and begins_with(#sortKey, :sortKey)',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey',
+        '#sortKey': 'sortKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': newspaper,
+        ':sortKey': date
+      }
+    }
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
 
 const getLinks = async browser => {
   try {
@@ -95,7 +115,7 @@ const processArticle = ([
     const tags = keywords.split(',');
     const newspaper = 'guardian';
     const primaryKey = `${newspaper}`;
-    const {sortKey, section, title} = generateSortKeyParts(contentType, contentId);
+    const {date, title, sortKey} = generateSortKeyParts(contentType, contentId);
     const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
     return {
@@ -110,7 +130,7 @@ const processArticle = ([
       primaryKey,
       scrapedOn,
       newspaper,
-      section,
+      date,
       title,
       author: author || byline,
       ...(series && { series }),
@@ -164,18 +184,20 @@ const getArticleData = async (browser, link) => {
 
 const generateSortKeyParts = (contentType, contentId) => {
   if (contentType.toLowerCase() === 'article') {
-    const [section, y, m, d, title] = contentId.split('/');
+    const [, y, m, d, title] = contentId.split('/');
+    const date = `${y}-${calendar[m]}-${d}`;
     return {
-      section,
+      date,
       title,
-      sortKey: `${section}#${y}-${calendar[m]}-${d}#${title}`
+      sortKey: `${date}#${contentType}#${title}`
     };
   } else {
-    const [section,, y, m, d, title] = contentId.split('/');
+    const [,, y, m, d, title] = contentId.split('/');
+    const date = `${y}-${calendar[m]}-${d}`;
     return {
-      section,
+      date,
       title,
-      sortKey: `${section}#${y}-${calendar[m]}-${d}#${title}`
+      sortKey: `${date}#${contentType}#${title}`
     };
   }
 }
