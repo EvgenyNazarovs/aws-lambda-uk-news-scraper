@@ -20,7 +20,7 @@ const calendar = {
 
 const { GuardianUrl, NewsScraperTable } = process.env;
 
-const limit = pLimit(10);
+const limit = pLimit(50);
 
 let totalEval = 0;
 
@@ -30,7 +30,7 @@ exports.handler = async () => {
       const articleLinks = await getLinks(browser);
       console.log('number of articles: ', articleLinks.length);
       const uniqLinks = filterUniqueLinks(articleLinks);
-      console.log('number of unique: ', uniqLinks);
+      console.log('number of unique: ', uniqLinks.length);
       return Promise.all(uniqLinks.map(async link => {
         return getArticleData(browser, link)
         }))
