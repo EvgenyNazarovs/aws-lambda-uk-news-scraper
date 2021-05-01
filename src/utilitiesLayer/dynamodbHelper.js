@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
 const documentClient = new AWS.DynamoDB.DocumentClient();
 
-// const reservedWords = [
-//   'section'
-// ]
+const reservedWords = [
+  'section'
+]
 
 const createItem = async (tableName, item) => {
   try {
@@ -73,33 +73,62 @@ const deleteItem = async (tableName, primaryKey, sortKey) => {
   }
 }
 
+const updateItem = async (tableName, item) => {
+  try {
+    const { primaryKey, sortKey, ...rest } = item;
+    const params = {
+      TableName: tableName,
+      Key: { primaryKey, sortKey },
+      UpdateExpression: getUpdateExpression(rest),
+      ExpressionAttributeNames: getExpressionAttributeNames(rest),
+      ExpressionAttributeValues: getExpressionAttributeValues(rest),
+      ReturnedValues: 'ALL_NEW'
+    }
+
+    const { Attributes } = await documentClient.update(params);
+
+    return Attributes;
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const createMany = (tableName, items) => {
+  return items.map(async item => {
+    return createItem(tableName, item)
+  })
+}
+
+const updateMany = (tableName, items) => {
+  return items.map(async item => {
+    return updateItem(tableName, item)
+  })
+}
+
+const getExpressionAttributeValues = item => Object.entries(item).reduce((obj, [key, value]) => ({...obj, [`:${key}`]: value}), {});
+
+const getExpressionAttributeNames = item => (
+  Object.keys(item).reduce((obj, key) => reservedWords.includes(key) ? {...obj, [`#${key}`]: `${key}`} : obj, {})
+);
+
+const getUpdateExpression = (item) => {
+  return Object.keys(item).reduce((string, key, index) => {
+    const expression = reservedWords.includes(key)
+                     ? `#${key} = :${key}`
+                     : `${key} = :${key}`;
+    return index === 0 ? `${string} ${expression}` : `${string}, ${expression}`;
+  }, "set");
+};
+
+
+
 module.exports = {
   createItem,
   getItem,
   deleteItem,
-  queryItems
+  queryItems,
+  updateItem,
+  createMany,
+  updateMany
 }
-
-// const updateItem = async (tableName, ) => {
-//   try {
-
-//   } catch (err) {
-//     console.error(err);
-//     throw Error(err);
-//   }
-// }
-
-// const getExpressionAttributeValues = item => Object.entries(item).reduce((obj, [key, value]) => ({...obj, [`:${key}`]: value}), {});
-
-// const getExpressionAttributeNames = item => (
-//   Object.keys(item).reduce((obj, key) => reservedWords.includes(key) ? {...obj, [`#${key}`]: `${key}`} : obj, {})
-// );
-
-// const getUpdateExpression = (item) => {
-//   return Object.keys(item).reduce((string, key, index) => {
-//     const expression = reservedWords.includes(key)
-//                      ? `#${key} = :${key}`
-//                      : `${key} = :${key}`;
-//     return index === 0 ? `${string} ${expression}` : `${string}, ${expression}`;
-//   }, "set");
-// };

@@ -1,6 +1,7 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { createItem, queryItems } = require('/opt/dynamodbHelper')
+const { updateMany } = require('../utilitiesLayer/dynamodbHelper');
+const { queryItems, updateItem, createMany, upfateMany } = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -18,7 +19,12 @@ const calendar = {
   dec: 12,
 };
 
-const { GuardianUrl, NewsScraperTable } = process.env;
+const {
+  GuardianUrlUk,
+  GuardianUrl,
+  NewsScraperTable,
+  PrimaryKey
+} = process.env;
 
 const limit = pLimit(10);
 
@@ -26,19 +32,25 @@ let totalEval = 0;
 
 exports.handler = async () => {
   try {
-    const articlesData = await withBrowser(async browser => {
-      const articleLinks = await getLinks(browser);
-      const uniqLinks = filterUniqueLinks(articleLinks);
-      return Promise.all(uniqLinks.map(async link => {
-        return getArticleData(browser, link)
-        }))
-    });
+    const [
+      articlesData,
+      existingTags,
+      existingAuthors
+    ] = await Promise.all([
+      scrapeArticles(),
+      getExistingTags(),
+      getExistingAuthors()
+    ])
 
     const articles = articlesData.map(processArticle);
+    const tags = sortTags(articles, existingTags);
+    const authors = sortAuthors(articles, existingAuthors);
 
-    const result = await Promise.all(articles.map(async article => {
-      return createItem(NewsScraperTable, article);
-    }))
+    const result = await Promise.all([
+      ...createMany(NewsScraperTable, articles),
+      ...updateMany(NewsScraperTable, tags),
+      ...updateMany(NewsScraperTable, authors)
+    ])
 
     console.log('result: ', result);
 
@@ -53,7 +65,168 @@ exports.handler = async () => {
   }
 }
 
-const filterUniqueLinks = links => [...new Set(links)];
+const sortAuthors = (articles, existingAuthors) => {
+  const existingAuthorsObj = sortBySortKey(existingAuthors);
+  const sortedAuthorsObj = getAuthorsFromArticles(articles, existingAuthorsObj);
+  return Object.values(sortedAuthorsObj);
+}
+
+const sortTags = (articles, existingTags) => {
+  const existingTagsObj = sortBySortKey(existingTags);
+  const sortedTagsObj = getTagsFromNewArticles(articles, existingTagsObj)
+  return Object.values(sortedTagsObj);
+}
+
+
+  const sortByKey = (arr, key) => {
+    return arr.reduce((obj, item) => {
+      return { ...obj, [item[key]]: item }
+    }, {})
+  }
+
+  const sortBySortKey = arr => sortByKey(arr, 'sortKey');
+
+  const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
+    return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
+      authors.forEach(author => {
+        const authorObj = {
+          primaryKey: 'Author',
+          sortKey: author,
+          newspaper: 'Guardian',
+          articleIds: [
+            ...obj[tag].articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+
+        obj = { ...obj, [author]: authorObj }
+      })
+
+      return obj;
+    }, existingAuthorsObj)
+  }
+
+  const getTagsFromNewArticles = (articles, existingTagsObj) => {
+    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
+      tags.forEach(tag => {
+        const tagObj = {
+          primaryKey: 'Tag',
+          secondaryKey: tag,
+          articleIds: [
+            ...obj[tag].articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+  
+      obj = { ...obj, [tag]: tagObj }
+    })
+
+    return obj;
+
+    }, existingTagsObj)
+  }
+
+
+// const updateTag = async (tag, article) => {
+//   try {
+//     const ddbItem = {
+//       primaryKey: 'Tag',
+//       sortKey: tag,
+//       articles: article.map()
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     throw Error(err);
+//   }
+// }
+
+const getUniqueUrls = (urls, existingArticles) => {
+  const filteredUniqueUrls = filterUnique(urls);
+  return filterExisting(filteredUniqueUrls, existingArticles);
+}
+
+// const getUniqueTags = (articles, existingTags) => {
+//   const newTags = articles.flatMap(({ tags }) => tags);
+//   return [...new Set([
+//     ...existingTags,
+//     ...newTags
+//   ])]
+// }
+
+const filterExisting = (urls, existingArticles) => {
+  const existingUrls = existingArticles.map(({ contentId }) => {
+    return `${GuardianUrl}${contentId}`;
+  })
+  return [...new Set([
+      ...urls,
+      ...existingUrls
+      ])]
+}
+
+const scrapeArticles = async () => {
+  try {
+    return await withBrowser(async browser => {
+      const [
+        articleUrls,
+        existingArticles
+      ] = await Promise.all([
+        getUrls(browser),
+        getExistingArticles(PrimaryKey, dayjs.format('YYYY-MM-DD'))
+      ])
+
+      const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
+      return Promise.all(uniqUrls.map(async url => {
+        return getArticleData(browser, url)
+        }))
+    });
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getExistingTags = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Tag'
+      }
+    }
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getExistingAuthors = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Author'
+      }
+    }
+
+    return queryItems(params);
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const filterUnique = links => [...new Set(links)];
 
 const getHeadlines = () => {
   return [
@@ -86,10 +259,10 @@ const getExistingArticles = async (newspaper, date) => {
   }
 }
 
-const getLinks = async browser => {
+const getUrls = async browser => {
   try {
     return withPage(browser)(async page => {
-      await page.goto(GuardianUrl, { waitUntil: 'networkidle2' });
+      await page.goto(GuardianUrlUk, { waitUntil: 'networkidle2' });
       return page.evaluate(getHeadlines)
     });
   } catch (err) {
@@ -113,7 +286,7 @@ const processArticle = ([
 ]) => {
   if (contentType.toLowerCase() !== 'tag') {
     const tags = keywords.split(',');
-    const newspaper = 'guardian';
+    const newspaper = 'Guardian';
     const primaryKey = `${newspaper}`;
     const {date, title, sortKey} = generateSortKeyParts(contentType, contentId);
     const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
