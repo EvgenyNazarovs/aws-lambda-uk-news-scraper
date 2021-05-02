@@ -95,6 +95,28 @@ Resources:
             Path: /articles/guardian/{date}
             Method: GET
       CodeUri: GetGuardianArticlesByDateFunction
+  GetGuardianArticlesByTagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getGuardianArticlesByTag.handler
+      MemorySize: 128
+      Timeout: 120
+      Description: Lambda that gets Guardian articles by tag
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: NewsScraperTable
+      Environment:
+        Variables:
+          PrimaryKey: Guardian
+          TagPrimaryKey: Tag
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /tags/{tag}
+            Method: GET
+      CodeUri: GetGuardianArticlesByTagFunction
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
     Properties:
