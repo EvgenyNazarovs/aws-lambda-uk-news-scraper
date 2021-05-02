@@ -26,7 +26,7 @@ const createItem = async (tableName, item) => {
 
 const getItem = async (tableName, primaryKey, sortKey) => {
   try {
-    const params = {
+    const params = {  
       TableName: tableName,
       Key: {
         "sortKey": sortKey,

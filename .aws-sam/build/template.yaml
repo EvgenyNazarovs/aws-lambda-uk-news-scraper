@@ -4,6 +4,8 @@ Transform: AWS::Serverless-2016-10-31
 Globals:
   Function:
     Runtime: nodejs14.x
+    Layers:
+    - Ref: ScraperHelperLayer
     Environment:
       Variables:
         AwsRegion: eu-west-1
@@ -19,7 +21,6 @@ Resources:
       Description: Lambda that scrapes latest headlines from Guardian
       Layers:
       - Ref: PuppeteerDependencyLayer
-      - Ref: ScraperHelperLayer
       Policies:
       - DynamoDBCrudPolicy:
           TableName:
@@ -56,10 +57,8 @@ Resources:
     Properties:
       Handler: src/handlers/getAllGuardianArticles.handler
       MemorySize: 128
-      Timeout: 100
+      Timeout: 120
       Description: Lambda that gets all Guardian articles
-      Layers:
-      - Ref: ScraperHelperLayer
       Policies:
       - DynamoDBReadPolicy:
           TableName:
@@ -74,20 +73,54 @@ Resources:
             Path: /articles/guardian
             Method: GET
       CodeUri: GetAllGuardianArticlesFunction
+  GetGuardianArticlesByDateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getGuardianArticlesByDate.handler
+      MemorySize: 128
+      Timeout: 120
+      Description: Lambda that gets Guardian articles by date
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: NewsScraperTable
+      Environment:
+        Variables:
+          PrimaryKey: Guardian
+          ByDateGsiName: gsiByDate
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /articles/guardian/{date}
+            Method: GET
+      CodeUri: GetGuardianArticlesByDateFunction
   NewsScraperTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: NewsScraperTable
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       AttributeDefinitions:
       - AttributeName: primaryKey
         AttributeType: S
       - AttributeName: sortKey
+        AttributeType: S
+      - AttributeName: date
         AttributeType: S
       KeySchema:
       - AttributeName: primaryKey
         KeyType: HASH
       - AttributeName: sortKey
         KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: '5'
-        WriteCapacityUnits: '5'
-      TableName: NewsScraperTable
+      GlobalSecondaryIndexes:
+      - IndexName: gsiByDate
+        KeySchema:
+        - AttributeName: primaryKey
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
