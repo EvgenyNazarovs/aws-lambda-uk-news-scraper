@@ -88,6 +88,7 @@ Resources:
       Environment:
         Variables:
           PrimaryKey: Guardian
+          ByDateGsiName: gsiByDate
       Events:
         Api:
           Type: Api
