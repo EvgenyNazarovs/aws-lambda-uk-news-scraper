@@ -44,6 +44,26 @@ const getItem = async (tableName, primaryKey, sortKey) => {
   }
 }
 
+const batchGetItems = async (tableName, keys) => {
+  try {
+    const params = {
+      RequestItems: {
+        [tableName]: {
+          Keys: keys
+        }
+      }
+    };
+
+    const { Items } = await documentClient.batchGet(params).promise();
+
+    return Items;
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
 const queryItems = async (params) => {
   try {
     const { Items }= await documentClient.query(params).promise();
@@ -139,5 +159,6 @@ module.exports = {
   queryItems,
   updateItem,
   createMany,
-  updateMany
+  updateMany,
+  batchGetItems
 }
