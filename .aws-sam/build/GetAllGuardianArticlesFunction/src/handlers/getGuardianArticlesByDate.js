@@ -5,9 +5,9 @@ const {
   ByDateGsiName
   } = process.env;
 
-exports.handler = async ({ queryStringParameters }) => {
+exports.handler = async ({ pathParameter }) => {
   try { 
-    const { start, end } = queryStringParameters;
+    const { start, end } = pathParameter;
     const articles = await getGuardianArticlesByDate(start, end);
     return {
       statusCode: 200,
