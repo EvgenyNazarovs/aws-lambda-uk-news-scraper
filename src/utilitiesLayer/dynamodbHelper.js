@@ -34,7 +34,7 @@ const getItem = async (tableName, primaryKey, sortKey) => {
       }
     }
 
-    const { Item } = await documentClient.getItem(params).promise();
+    const { Item } = await documentClient.get(params).promise();
 
     return Item;
 

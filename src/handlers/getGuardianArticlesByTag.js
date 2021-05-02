@@ -4,6 +4,7 @@ const { NewsScraperTable, TagPrimaryKey } = process.env;
 exports.handler = async ({ pathParameter }) => {
   try {
     const { tag } = pathParameter;
+    console.log('tag: ', tag);
     const tagObj = await getItem(NewsScraperTable, TagPrimaryKey, tag);
     const articles = await batchGetItems(NewsScraperTable, tagObj.articleIds);
     return {
