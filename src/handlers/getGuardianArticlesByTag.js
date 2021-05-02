@@ -1,9 +1,9 @@
 const { getItem, batchGetItems } = require('/opt/dynamodbHelper');
 const { NewsScraperTable, TagPrimaryKey } = process.env;
 
-exports.handler = async ({ queryStringParameter }) => {
+exports.handler = async ({ pathParameter }) => {
   try {
-    const { tag } = queryStringParameter;
+    const { tag } = pathParameter;
     const tagObj = await getItem(NewsScraperTable, TagPrimaryKey, tag);
     const articles = await batchGetItems(NewsScraperTable, tagObj.articleIds);
     return {
