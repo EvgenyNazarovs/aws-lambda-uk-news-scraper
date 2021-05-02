@@ -54,9 +54,9 @@ const batchGetItems = async (tableName, keys) => {
       }
     };
 
-    const { Items } = await documentClient.batchGet(params).promise();
+    const { Responses } = await documentClient.batchGet(params).promise();
 
-    return Items;
+    return Responses[tableName];
 
   } catch (err) {
     console.error(err);

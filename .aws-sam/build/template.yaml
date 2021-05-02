@@ -108,6 +108,7 @@ Resources:
             Ref: NewsScraperTable
       Environment:
         Variables:
+          PrimaryKey: Guardian
           TagPrimaryKey: Tag
       Events:
         Api:
