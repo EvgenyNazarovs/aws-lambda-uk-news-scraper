@@ -122,45 +122,7 @@ const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
 
   const sortBySortKey = arr => sortByKey(arr, 'sortKey');
 
-  const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
-    return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
-      authors.forEach(author => {
-        const authorObj = {
-          primaryKey: 'Author',
-          sortKey: author,
-          newspaper: 'Guardian',
-          articleIds: [
-            ...obj[author]?.articleIds || [],
-            { primaryKey, sortKey }
-          ]
-        };
 
-        obj = { ...obj, [author]: authorObj }
-      })
-
-      return obj;
-    }, existingAuthorsObj)
-  }
-
-  const getTagsFromNewArticles = (articles, existingTagsObj) => {
-    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
-      tags.forEach(tag => {
-        const tagObj = {
-          primaryKey: 'Tag',
-          sortKey: tag,
-          articleIds: [
-            ...obj[tag]?.articleIds || [],
-            { primaryKey, sortKey }
-          ]
-        };
-  
-      obj = { ...obj, [tag]: tagObj }
-    })
-
-    return obj;
-
-    }, existingTagsObj)
-  }
 
 
 // const updateTag = async (tag, article) => {
@@ -335,7 +297,9 @@ const processArticle = ([
     const primaryKey = `${newspaper}`;
     const {date, title, sortKey} = generateSortKeyParts(contentType, contentId);
     const scrapedOn = dayjs().format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-    const authors = author ? author.split(',') : byline.split(',');
+    const authors = author ? author.split(',') :
+                    byline ? byline.split(',') :
+                    null; 
 
     return {
       contentType,
@@ -351,7 +315,7 @@ const processArticle = ([
       newspaper,
       date,
       title,
-      authors,
+      ...(authors && { authors }),
       ...(series && { series }),
       ...(seriesId && { seriesId })
     }
@@ -419,4 +383,46 @@ const generateSortKeyParts = (contentType, contentId) => {
       sortKey: `${date}#${contentType}#${title}`
     };
   }
+}
+
+const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
+  return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
+    if (authors?.length > 0) {
+      authors.forEach(author => {
+        const authorObj = {
+          primaryKey: 'Author',
+          sortKey: author,
+          newspaper: 'Guardian',
+          articleIds: [
+            ...obj[author]?.articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+  
+        obj = { ...obj, [author]: authorObj }
+      })
+    }
+
+    return obj;
+  }, existingAuthorsObj)
+}
+
+const getTagsFromNewArticles = (articles, existingTagsObj) => {
+  return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
+    tags.forEach(tag => {
+      const tagObj = {
+        primaryKey: 'Tag',
+        sortKey: tag,
+        articleIds: [
+          ...obj[tag]?.articleIds || [],
+          { primaryKey, sortKey }
+        ]
+      };
+
+    obj = { ...obj, [tag]: tagObj }
+  })
+
+  return obj;
+
+  }, existingTagsObj)
 }
