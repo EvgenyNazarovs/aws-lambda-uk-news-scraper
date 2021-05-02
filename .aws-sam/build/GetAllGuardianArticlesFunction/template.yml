@@ -101,9 +101,6 @@ Resources:
     Properties:
       TableName: NewsScraperTable
       BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
       AttributeDefinitions:
         -
           AttributeName: primaryKey
@@ -121,6 +118,9 @@ Resources:
         -
           AttributeName: sortKey
           KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       GlobalSecondaryIndexes:
       - IndexName: gsiByDate
         KeySchema:
@@ -132,5 +132,8 @@ Resources:
             KeyType: RANGE
         Projection:
           ProjectionType: ALL
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
       
       
