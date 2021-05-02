@@ -114,7 +114,7 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Path: /articles/guardian/{tag}
+            Path: /tags/{tag}
             Method: GET
 
   NewsScraperTable:
