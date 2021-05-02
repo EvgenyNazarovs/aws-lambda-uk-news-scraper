@@ -6,7 +6,9 @@ exports.handler = async ({ pathParameter }) => {
     const { tag } = pathParameter;
     console.log('tag: ', tag);
     const tagObj = await getItem(NewsScraperTable, TagPrimaryKey, tag);
-    const articles = await batchGetItems(NewsScraperTable, tagObj.articleIds);
+    const uniqueArticleIds = [...new Set(tagObj.articleIds)];
+    console.log('unique articles ids: ', uniqueArticleIds);
+    const articles = await batchGetItems(NewsScraperTable, uniqueArticleIds);
     return {
       body: JSON.stringify(articles),
       statusCode: 200
