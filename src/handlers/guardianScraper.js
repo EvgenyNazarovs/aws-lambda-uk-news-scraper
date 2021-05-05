@@ -41,7 +41,8 @@ exports.handler = async () => {
       getExistingAuthors()
     ])
 
-    const articles = articlesData.map(processArticle);
+    const articles = articlesData.map(processArticle)
+                                 .filter(article => article);
 
     console.log('articles: ', articles);
 
@@ -384,14 +385,14 @@ const generateSortKeyParts = (contentType, contentId) => {
 
 const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
   return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
-    if (authors?.length > 0) {
+    if (authors && authors.length > 0) {
       authors.forEach(author => {
         const authorObj = {
           primaryKey: 'Author',
           sortKey: author,
           newspaper: 'Guardian',
           articleIds: [
-            ...obj[author]?.articleIds || [],
+            ...(obj[author] && obj[author].articleIds) || [],
             { primaryKey, sortKey }
           ]
         };
@@ -405,15 +406,13 @@ const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
 }
 
 const getTagsFromNewArticles = (articles, existingTagsObj) => {
-  try {
-    return articles.reduce((obj, { primaryKey, sortKey, tags, ...rest }) => {
-      try {
+    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
         tags.forEach(tag => {
           const tagObj = {
             primaryKey: 'Tag',
             sortKey: tag,
             articleIds: [
-              ...obj[tag]?.articleIds || [],
+              ...(obj[tag] && obj[tag].articleIds) || [],
               { primaryKey, sortKey }
             ]
           };
@@ -422,22 +421,6 @@ const getTagsFromNewArticles = (articles, existingTagsObj) => {
       })
     
       return obj;
-      } catch (err) {
-        console.error(err);
-        console.log('primary key: ', primaryKey);
-      console.log('sort key: ', sortKey);
-      console.log('tags: ', tags);
-      console.log('rest: ', rest);
-      }
-      
-     
   
     }, existingTagsObj)
-  } catch (err) {
-    console.log('articles: ', articles);
-    console.log('existing tags obj: ', existingTagsObj);
-    console.error(err);
-    throw Error(err);
-  }
-  
 }
