@@ -173,9 +173,6 @@ const scrapeArticles = async () => {
         getExistingArticles(PrimaryKey, dayjs().format('YYYY-M-DD'))
       ])
 
-      console.log('article urls: ', articleUrls);
-      console.log('existing articles: ', existingArticles);
-
       const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
 
       console.log('uniq urls: ', uniqUrls);
@@ -408,21 +405,29 @@ const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
 }
 
 const getTagsFromNewArticles = (articles, existingTagsObj) => {
-  return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
-    tags.forEach(tag => {
-      const tagObj = {
-        primaryKey: 'Tag',
-        sortKey: tag,
-        articleIds: [
-          ...obj[tag]?.articleIds || [],
-          { primaryKey, sortKey }
-        ]
-      };
-
-    obj = { ...obj, [tag]: tagObj }
-  })
-
-  return obj;
-
-  }, existingTagsObj)
+  try {
+    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
+      tags.forEach(tag => {
+        const tagObj = {
+          primaryKey: 'Tag',
+          sortKey: tag,
+          articleIds: [
+            ...obj[tag]?.articleIds || [],
+            { primaryKey, sortKey }
+          ]
+        };
+  
+      obj = { ...obj, [tag]: tagObj }
+    })
+  
+    return obj;
+  
+    }, existingTagsObj)
+  } catch (err) {
+    console.log('articles: ', articles);
+    console.log('existing tags obj: ', existingTagsObj);
+    console.error(err);
+    throw Error(err);
+  }
+  
 }
