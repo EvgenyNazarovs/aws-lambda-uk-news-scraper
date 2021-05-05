@@ -406,24 +406,31 @@ const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
 
 const getTagsFromNewArticles = (articles, existingTagsObj) => {
   try {
-    return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
-      console.log('primary key: ', primaryKey);
+    return articles.reduce((obj, { primaryKey, sortKey, tags, ...rest }) => {
+      try {
+        tags.forEach(tag => {
+          const tagObj = {
+            primaryKey: 'Tag',
+            sortKey: tag,
+            articleIds: [
+              ...obj[tag]?.articleIds || [],
+              { primaryKey, sortKey }
+            ]
+          };
+    
+        obj = { ...obj, [tag]: tagObj }
+      })
+    
+      return obj;
+      } catch (err) {
+        console.error(err);
+        console.log('primary key: ', primaryKey);
       console.log('sort key: ', sortKey);
       console.log('tags: ', tags);
-      tags.forEach(tag => {
-        const tagObj = {
-          primaryKey: 'Tag',
-          sortKey: tag,
-          articleIds: [
-            ...obj[tag]?.articleIds || [],
-            { primaryKey, sortKey }
-          ]
-        };
-  
-      obj = { ...obj, [tag]: tagObj }
-    })
-  
-    return obj;
+      console.log('rest: ', rest);
+      }
+      
+     
   
     }, existingTagsObj)
   } catch (err) {
