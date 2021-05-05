@@ -16,6 +16,7 @@ Resources:
   GuardianScraper:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: GuardianScraperLambda-Scheduled
       Handler: src/handlers/guardianScraper.handler
       MemorySize: 512
       Timeout: 900
@@ -58,6 +59,7 @@ Resources:
   GetAllGuardianArticlesFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: GetAllGuardianArticlesLambda
       Handler: src/handlers/getAllGuardianArticles.handler
       MemorySize: 128
       Timeout: 120
@@ -78,6 +80,7 @@ Resources:
   GetGuardianArticlesByDateFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: GetGuardianArticlesByDateLambda
       Handler: src/handlers/getGuardianArticlesByDate.handler
       MemorySize: 128
       Timeout: 120
@@ -99,6 +102,7 @@ Resources:
   GetGuardianArticlesByTagFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: GetGuardianArticlesByTagLambda
       Handler: src/handlers/getGuardianArticlesByTag.handler
       MemorySize: 128
       Timeout: 120
