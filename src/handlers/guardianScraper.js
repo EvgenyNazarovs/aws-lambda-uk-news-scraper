@@ -144,44 +144,17 @@ const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
 
   const sortBySortKey = arr => sortByKey(arr, 'sortKey');
 
-
-
-
-// const updateTag = async (tag, article) => {
-//   try {
-//     const ddbItem = {
-//       primaryKey: 'Tag',
-//       sortKey: tag,
-//       articles: article.map()
-//     }
-//   } catch (err) {
-//     console.error(err);
-//     throw Error(err);
-//   }
-// }
-
 const getUniqueUrls = (urls, existingArticles) => {
   const filteredUniqueUrls = filterUnique(urls);
   return filterExisting(filteredUniqueUrls, existingArticles);
 }
 
-// const getUniqueTags = (articles, existingTags) => {
-//   const newTags = articles.flatMap(({ tags }) => tags);
-//   return [...new Set([
-//     ...existingTags,
-//     ...newTags
-//   ])]
-// }
-
 const filterExisting = (urls, existingArticles) => {
   const existingUrls = existingArticles.map(({ contentId }) => {
     return `${GuardianUrl}${contentId}`;
   })
-  console.log('existing urls: ', existingUrls);
-  return [...new Set([
-      ...urls,
-      ...existingUrls
-      ])]
+  const uniqUrls = urls.filter(url => !existingUrls.includes(url));
+  return uniqUrls;
 }
 
 
