@@ -387,17 +387,19 @@ const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
   return articles.reduce((obj, { primaryKey, sortKey, authors }) => {
     if (authors && authors.length > 0) {
       authors.forEach(author => {
-        const authorObj = {
-          primaryKey: 'Author',
-          sortKey: author,
-          newspaper: 'Guardian',
-          articleIds: [
-            ...(obj[author] && obj[author].articleIds) || [],
-            { primaryKey, sortKey }
-          ]
-        };
-  
-        obj = { ...obj, [author]: authorObj }
+        if (author.length > 0) {
+          const authorObj = {
+            primaryKey: 'Author',
+            sortKey: author,
+            newspaper: 'Guardian',
+            articleIds: [
+              ...(obj[author] && obj[author].articleIds) || [],
+              { primaryKey, sortKey }
+            ]
+          };
+          obj = { ...obj, [author]: authorObj }
+        }
+        
       })
     }
 
@@ -408,16 +410,18 @@ const getAuthorsFromArticles = (articles, existingAuthorsObj) => {
 const getTagsFromNewArticles = (articles, existingTagsObj) => {
     return articles.reduce((obj, { primaryKey, sortKey, tags }) => {
         tags.forEach(tag => {
-          const tagObj = {
-            primaryKey: 'Tag',
-            sortKey: tag,
-            articleIds: [
-              ...(obj[tag] && obj[tag].articleIds) || [],
-              { primaryKey, sortKey }
-            ]
-          };
-    
-        obj = { ...obj, [tag]: tagObj }
+          if (tag.length > 0) {
+            const tagObj = {
+              primaryKey: 'Tag',
+              sortKey: tag,
+              articleIds: [
+                ...(obj[tag] && obj[tag].articleIds) || [],
+                { primaryKey, sortKey }
+              ]
+            };
+      
+          obj = { ...obj, [tag]: tagObj }
+          }
       })
     
       return obj;
