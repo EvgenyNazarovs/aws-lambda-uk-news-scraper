@@ -101,107 +101,6 @@ const scrapeArticles = async existingArticles => {
   }
 }
 
-const sortAuthors = (articles, existingAuthors) => {
-  const existingAuthorsObj = sortBySortKey(existingAuthors);
-  const sortedAuthorsObj = getAuthorsFromArticles(articles, existingAuthorsObj);
-  const existingUpdatedAuthors = filterExistingObjects(sortedAuthorsObj, existingAuthorsObj);
-  const newUpdatedAuthors = filterNew(sortedAuthorsObj, existingAuthorsObj);
-  return {
-    existingUpdatedAuthors,
-    newUpdatedAuthors
-  };
-}
-
-const sortTags = (articles, existingTags) => {
-  const existingTagsObj = sortBySortKey(existingTags);
-  const sortedTagsObj = getTagsFromNewArticles(articles, existingTagsObj)
-  const existingUpdatedTags = filterExistingObjects(sortedTagsObj, existingTagsObj);
-  const newUpdatedTags = filterNew(sortedTagsObj, existingTagsObj);
-  return {
-    existingUpdatedTags,
-    newUpdatedTags
-  }
-}
-
-const filterExistingObjects = (sortedAuthorsObj, existingAuthorsObj) => {
-  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
-    return Object.keys(existingAuthorsObj).includes(sortKey)
-  });
-}
-
-const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
-  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
-    return !Object.keys(existingAuthorsObj).includes(sortKey)
-  });
-}
-
-
-  const sortByKey = (arr, key) => {
-    return arr.reduce((obj, item) => {
-      return { ...obj, [item[key]]: item }
-    }, {})
-  }
-
-  const sortBySortKey = arr => sortByKey(arr, 'sortKey');
-
-const getUniqueUrls = (urls, existingArticles) => {
-  const filteredUniqueUrls = filterUnique(urls);
-  return filterExisting(filteredUniqueUrls, existingArticles);
-}
-
-const filterExisting = (urls, existingArticles) => {
-  const existingUrls = existingArticles.map(({ contentId }) => {
-    return `${GuardianUrl}${contentId}`;
-  })
-  const uniqUrls = urls.filter(url => !existingUrls.includes(url));
-  return uniqUrls;
-}
-
-
-
-const getExistingTags = async () => {
-  try {
-    const params = {
-      TableName: NewsScraperTable,
-      KeyConditionExpression: '#primaryKey = :primaryKey',
-      ExpressionAttributeNames: {
-        '#primaryKey': 'primaryKey'
-      },
-      ExpressionAttributeValues: {
-        ':primaryKey': 'Tag'
-      }
-    }
-
-    return queryItems(params);
-
-  } catch (err) {
-    console.error(err);
-    throw Error(err);
-  }
-}
-
-const getExistingAuthors = async () => {
-  try {
-    const params = {
-      TableName: NewsScraperTable,
-      KeyConditionExpression: '#primaryKey = :primaryKey',
-      ExpressionAttributeNames: {
-        '#primaryKey': 'primaryKey'
-      },
-      ExpressionAttributeValues: {
-        ':primaryKey': 'Author'
-      }
-    }
-
-    return queryItems(params);
-  } catch (err) {
-    console.error(err);
-    throw Error(err);
-  }
-}
-
-const filterUnique = links => [...new Set(links)];
-
 const getHeadlines = () => {
   return [
     ...document.getElementsByClassName(
@@ -209,31 +108,6 @@ const getHeadlines = () => {
       ),
          ].map(item => item.getAttribute('href'))
 };
-
-const getExistingArticles = async (newspaper, date) => {
-  try {
-    const params = {
-      TableName: NewsScraperTable,
-      KeyConditionExpression: '#primaryKey = :primaryKey and begins_with(#sortKey, :sortKey)',
-      ExpressionAttributeNames: {
-        '#primaryKey': 'primaryKey',
-        '#sortKey': 'sortKey'
-      },
-      ExpressionAttributeValues: {
-        ':primaryKey': newspaper,
-        ':sortKey': date
-      }
-    }
-
-    console.log('getting existing articles... ', params);
-
-    return queryItems(params);
-
-  } catch (err) {
-    console.error(err);
-    throw Error(err);
-  }
-}
 
 const getUrls = async browser => {
   try {
@@ -351,6 +225,130 @@ const generateSortKeyParts = (contentType, contentId) => {
       title,
       sortKey: `${date}#${contentType}#${title}`
     };
+  }
+}
+
+const sortAuthors = (articles, existingAuthors) => {
+  const existingAuthorsObj = sortBySortKey(existingAuthors);
+  const sortedAuthorsObj = getAuthorsFromArticles(articles, existingAuthorsObj);
+  const existingUpdatedAuthors = filterExistingObjects(sortedAuthorsObj, existingAuthorsObj);
+  const newUpdatedAuthors = filterNew(sortedAuthorsObj, existingAuthorsObj);
+  return {
+    existingUpdatedAuthors,
+    newUpdatedAuthors
+  };
+}
+
+const sortTags = (articles, existingTags) => {
+  const existingTagsObj = sortBySortKey(existingTags);
+  const sortedTagsObj = getTagsFromNewArticles(articles, existingTagsObj)
+  const existingUpdatedTags = filterExistingObjects(sortedTagsObj, existingTagsObj);
+  const newUpdatedTags = filterNew(sortedTagsObj, existingTagsObj);
+  return {
+    existingUpdatedTags,
+    newUpdatedTags
+  }
+}
+
+const filterExistingObjects = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return Object.keys(existingAuthorsObj).includes(sortKey)
+  });
+}
+
+const filterNew = (sortedAuthorsObj, existingAuthorsObj) => {
+  return Object.values(sortedAuthorsObj).filter(({ sortKey }) => {
+    return !Object.keys(existingAuthorsObj).includes(sortKey)
+  });
+}
+
+
+const sortByKey = (arr, key) => {
+    return arr.reduce((obj, item) => {
+      return { ...obj, [item[key]]: item }
+    }, {})
+  }
+
+const sortBySortKey = arr => sortByKey(arr, 'sortKey');
+
+const getUniqueUrls = (urls, existingArticles) => {
+  const filteredUniqueUrls = filterUnique(urls);
+  return filterExisting(filteredUniqueUrls, existingArticles);
+}
+
+const filterExisting = (urls, existingArticles) => {
+  const existingUrls = existingArticles.map(({ contentId }) => {
+    return `${GuardianUrl}${contentId}`;
+  })
+  const uniqUrls = urls.filter(url => !existingUrls.includes(url));
+  return uniqUrls;
+}
+
+const getExistingTags = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Tag'
+      }
+    }
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const getExistingAuthors = async () => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': 'Author'
+      }
+    }
+
+    return queryItems(params);
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const filterUnique = links => [...new Set(links)];
+
+const getExistingArticles = async (newspaper, date) => {
+  try {
+    const params = {
+      TableName: NewsScraperTable,
+      KeyConditionExpression: '#primaryKey = :primaryKey and begins_with(#sortKey, :sortKey)',
+      ExpressionAttributeNames: {
+        '#primaryKey': 'primaryKey',
+        '#sortKey': 'sortKey'
+      },
+      ExpressionAttributeValues: {
+        ':primaryKey': newspaper,
+        ':sortKey': date
+      }
+    }
+
+    console.log('getting existing articles... ', params);
+
+    return queryItems(params);
+
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
   }
 }
 
