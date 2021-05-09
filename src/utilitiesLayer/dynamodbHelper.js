@@ -123,13 +123,13 @@ const updateItem = async (tableName, item) => {
   }
 }
 
-const createMany = (tableName, items) => {
+const batchCreateDDBItems = (tableName, items) => {
   return items.map(async item => {
     return createItem(tableName, item)
   })
 }
 
-const updateMany = (tableName, items) => {
+const batchUpdateDDBItems = (tableName, items) => {
   return items.map(async item => {
     return updateItem(tableName, item)
   })
@@ -158,7 +158,7 @@ module.exports = {
   deleteItem,
   queryItems,
   updateItem,
-  createMany,
-  updateMany,
+  batchCreateDDBItems,
+  batchUpdateDDBItems,
   batchGetItems
 }

@@ -1,6 +1,10 @@
 const dayjs = require('dayjs');
 const pLimit = require('p-limit');
-const { queryItems, createMany, updateMany } = require('/opt/dynamodbHelper')
+const {
+  queryItems,
+  batchCreateDDBItems,
+  batchUpdateDDBItems
+} = require('/opt/dynamodbHelper')
 const { withBrowser, withPage } = require('/opt/scraperHelper');
 
 const calendar = {
@@ -32,20 +36,21 @@ let totalEval = 0;
 exports.handler = async () => {
   try {
     const [
-      articlesData,
+      existingArticles,
       existingTags,
       existingAuthors
     ] = await Promise.all([
-      scrapeArticles(),
+      getExistingArticles(PrimaryKey, dayjs().format('YYYY-M-DD')),
       getExistingTags(),
       getExistingAuthors()
     ])
+
+    const articlesData = await scrapeArticles(existingArticles);
 
     const articles = articlesData.map(processArticle)
                                  .filter(article => article);
 
     console.log('articles: ', articles);
-
 
     const {
       existingUpdatedTags,
@@ -57,14 +62,12 @@ exports.handler = async () => {
       newUpdatedAuthors
     } = sortAuthors(articles, existingAuthors);
 
-    
-
     const result = await Promise.all([
-      ...createMany(NewsScraperTable, articles),
-      ...updateMany(NewsScraperTable, existingUpdatedTags),
-      ...updateMany(NewsScraperTable, existingUpdatedAuthors),
-      ...createMany(NewsScraperTable, newUpdatedTags),
-      ...createMany(NewsScraperTable, newUpdatedAuthors)
+      ...batchCreateDDBItems(NewsScraperTable, articles),
+      ...batchUpdateDDBItems(NewsScraperTable, existingUpdatedTags),
+      ...batchUpdateDDBItems(NewsScraperTable, existingUpdatedAuthors),
+      ...batchCreateDDBItems(NewsScraperTable, newUpdatedTags),
+      ...batchCreateDDBItems(NewsScraperTable, newUpdatedAuthors)
     ])
 
     console.log('result: ', result);
@@ -74,6 +77,24 @@ exports.handler = async () => {
       body: JSON.stringify('Articles Processed Successfully')
     }
     
+  } catch (err) {
+    console.error(err);
+    throw Error(err);
+  }
+}
+
+const scrapeArticles = async existingArticles => {
+  try {
+    return await withBrowser(async browser => {
+      const articleUrls = await getUrls(browser)
+      const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
+
+      console.log('uniq urls: ', uniqUrls);
+
+      return Promise.all(uniqUrls.map(async url => {
+        return getArticleData(browser, url)
+        }))
+    });
   } catch (err) {
     console.error(err);
     throw Error(err);
@@ -163,30 +184,7 @@ const filterExisting = (urls, existingArticles) => {
       ])]
 }
 
-const scrapeArticles = async () => {
-  try {
-    return await withBrowser(async browser => {
-      const [
-        articleUrls,
-        existingArticles
-      ] = await Promise.all([
-        getUrls(browser),
-        getExistingArticles(PrimaryKey, dayjs().format('YYYY-M-DD'))
-      ])
 
-      const uniqUrls = getUniqueUrls(articleUrls, existingArticles);
-
-      console.log('uniq urls: ', uniqUrls);
-
-      return Promise.all(uniqUrls.map(async url => {
-        return getArticleData(browser, url)
-        }))
-    });
-  } catch (err) {
-    console.error(err);
-    throw Error(err);
-  }
-}
 
 const getExistingTags = async () => {
   try {
