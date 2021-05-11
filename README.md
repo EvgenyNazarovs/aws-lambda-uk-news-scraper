@@ -1,6 +1,6 @@
 # aws-lambda-uk-news-scraper
 
-A scheduled web scraping lambda that retrieves UK news media headlines, along with tags, authors, and other metadata, on a 2-hourly basis, and saves to DynamoDb. Currently deployed on AWS and gets Guardian articles only.
+A scheduled web scraping lambda that retrieves UK news media headlines, along with tags, authors, and other metadata, on a 2-hourly basis, and saves to DynamoDb. Proof-of-concept lambda tested with the Guardian web pages.
 
 The project also includes three other Lambdas for basic GET requests to interact with the data.
 
