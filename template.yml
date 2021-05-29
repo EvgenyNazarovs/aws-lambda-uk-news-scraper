@@ -56,11 +56,11 @@ Resources:
         - nodejs14.x
       RetentionPolicy: Retain
 
-  GetAllGuardianArticlesFunction:
+  GetGuardianArticlesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: GetAllGuardianArticlesLambda
-      Handler: src/handlers/getAllGuardianArticles.handler
+      FunctionName: GetGuardianArticlesLambda
+      Handler: src/handlers/getGuardianArticles.handler
       MemorySize: 128
       Timeout: 120
       Description: Lambda that gets all Guardian articles
