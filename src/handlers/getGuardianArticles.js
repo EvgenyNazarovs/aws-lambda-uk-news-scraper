@@ -1,8 +1,13 @@
 const { queryItems } = require('/opt/dynamodbHelper');
-const { PrimaryKey, NewsScraperTable } = process.env;
+const {
+  PrimaryKey,
+  NewsScraperTable,
+  ByDateGsiName
+} = process.env;
 
 exports.handler = async ({ queryStringParameters }) => {
   try { 
+    console.log('query parameters: ', queryStringParameters)
     if (!queryStringParameters) {
       const items = await getAllGuardianArticles()
       return {
@@ -68,6 +73,7 @@ const getGuardianArticlesByDate = async (start, end) => {
         ':end': end
       }
     }
+    console.log('params: ', params);
     return queryItems(params);
   } catch (err) {
     console.error(err);

@@ -8,8 +8,8 @@ const {
 exports.handler = async (event) => {
   try { 
     console.log('event: ', event);
-    // const { start, end } = queryStringParameters;
-    // const articles = await getGuardianArticlesByDate(start, end);
+    const { start, end } = queryStringParameters;
+    const articles = await getGuardianArticlesByDate(start, end);
     return {
       statusCode: 200,
       // body: JSON.stringify(articles),
@@ -39,6 +39,7 @@ const getGuardianArticlesByDate = async (start, end) => {
         ':end': end
       }
     }
+    console.log('params: ', params);
 
     return queryItems(params);
 

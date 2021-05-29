@@ -70,55 +70,12 @@ Resources:
       Environment:
         Variables:
           PrimaryKey: Guardian
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /articles/guardian
-            Method: GET
-
-  GetGuardianArticlesByDateFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: GetGuardianArticlesByDateLambda
-      Handler: src/handlers/getGuardianArticlesByDate.handler
-      MemorySize: 128
-      Timeout: 120
-      Description: Lambda that gets Guardian articles by date
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref NewsScraperTable
-      Environment:
-        Variables:
-          PrimaryKey: Guardian
           ByDateGsiName: gsiByDate
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /articles/guardian/{date}
-            Method: GET
-
-  GetGuardianArticlesByTagFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: GetGuardianArticlesByTagLambda
-      Handler: src/handlers/getGuardianArticlesByTag.handler
-      MemorySize: 128
-      Timeout: 120
-      Description: Lambda that gets Guardian articles by tag
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref NewsScraperTable
-      Environment:
-        Variables:
-          PrimaryKey: Guardian
-          TagPrimaryKey: Tag
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /tags/{tag}
+            Path: /articles/guardian
             Method: GET
 
   NewsScraperTable:
