@@ -7,6 +7,10 @@ exports.handler = async () => {
     return {
       body: JSON.stringify(items),
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
+      }
     }
   } catch (err) {
     console.error(err);

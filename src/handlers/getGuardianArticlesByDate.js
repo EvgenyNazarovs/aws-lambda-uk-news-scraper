@@ -5,13 +5,18 @@ const {
   ByDateGsiName
   } = process.env;
 
-exports.handler = async ({ pathParameter }) => {
+exports.handler = async (event) => {
   try { 
-    const { start, end } = pathParameter;
-    const articles = await getGuardianArticlesByDate(start, end);
+    console.log('event: ', event);
+    // const { start, end } = queryStringParameters;
+    // const articles = await getGuardianArticlesByDate(start, end);
     return {
       statusCode: 200,
-      body: JSON.stringify(articles)
+      // body: JSON.stringify(articles),
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
+      }
     }
   } catch (err) {
     console.error(err);
